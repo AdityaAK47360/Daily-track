@@ -1,22 +1,16 @@
-// Global React and Recharts are loaded via script tags
-const React = window.React;
-const ReactDOM = window.ReactDOM;
-const { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid, 
-  RadialBarChart, 
-  RadialBar 
-} = window.Recharts;
+// Initialize app when all libraries are loaded
+function initializeApp() {
+  if (!window.React || !window.ReactDOM) {
+    console.error('React not loaded yet');
+    setTimeout(initializeApp, 500);
+    return;
+  }
 
-function RoutineTracker() {
+  const React = window.React;
+  const ReactDOM = window.ReactDOM;
+  const Recharts = window.Recharts || {};
+
+  function RoutineTracker() {
   const weeklyPlan = {
     Monday: [
       'Wake up at 8:00 AM',
@@ -93,156 +87,118 @@ function RoutineTracker() {
     },
   ];
 
-  return (
-    <div className="app-shell">
-      <header className="site-header">
-        <h1 className="site-title">Weekly Routine Tracker</h1>
-        <p className="site-subtitle">
-          Product Management • AI Agents • Saudafy • Gym • Deep Work
-        </p>
-      </header>
+    return React.createElement('div', { className: 'app-shell' },
+      React.createElement('header', { className: 'site-header' },
+        React.createElement('h1', { className: 'site-title' }, 'Weekly Routine Tracker'),
+        React.createElement('p', { className: 'site-subtitle' }, 'Product Management • AI Agents • Saudafy • Gym • Deep Work')
+      ),
+      React.createElement('section', { className: 'card-grid' },
+        Object.entries(weeklyPlan).map(([day, tasks]) =>
+          React.createElement('article', { key: day, className: 'card' },
+            React.createElement('div', { className: 'card-header' },
+              React.createElement('h2', { className: 'card-title' }, day),
+              React.createElement('span', { className: 'status-pill' })
+            ),
+            React.createElement('div', { className: 'tasks-list' },
+              tasks.map((task, index) =>
+                React.createElement('label', { key: index, className: 'task-item' },
+                  React.createElement('input', { type: 'checkbox', className: 'task-checkbox' }),
+                  React.createElement('p', { className: 'task-label' }, task)
+                )
+              )
+            ),
+            React.createElement('textarea', { className: 'notes-textarea', placeholder: 'Write notes for the day...' })
+          )
+        )
+      ),
+      React.createElement('section', null,
+        React.createElement('h2', { className: 'section-title' }, 'Interactive Weekly Report'),
+        React.createElement('div', { className: 'chart-grid' },
+          React.createElement('div', { className: 'chart-card' },
+            React.createElement('h3', null, 'Weekly Productivity Graph'),
+            Recharts.ResponsiveContainer ? React.createElement(Recharts.ResponsiveContainer, { width: '100%', height: 300 },
+              React.createElement(Recharts.LineChart, { data: productivityData },
+                React.createElement(Recharts.CartesianGrid, { strokeDasharray: '3 3', stroke: '#334155' }),
+                React.createElement(Recharts.XAxis, { dataKey: 'name', stroke: '#cbd5e1' }),
+                React.createElement(Recharts.YAxis, { stroke: '#cbd5e1' }),
+                React.createElement(Recharts.Tooltip),
+                React.createElement(Recharts.Line, { type: 'monotone', dataKey: 'tasks', stroke: '#22c55e', strokeWidth: 4, dot: { r: 6 } })
+              )
+            ) : React.createElement('p', null, 'Loading...')
+          ),
+          React.createElement('div', { className: 'chart-card' },
+            React.createElement('h3', null, 'Weekly Completion Rate'),
+            Recharts.ResponsiveContainer ? React.createElement(Recharts.ResponsiveContainer, { width: '100%', height: 300 },
+              React.createElement(Recharts.PieChart, null,
+                React.createElement(Recharts.Pie, { data: consistencyData, cx: '50%', cy: '50%', innerRadius: 70, outerRadius: 110, paddingAngle: 5, dataKey: 'value' },
+                  React.createElement(Recharts.Cell, { fill: '#22c55e' }),
+                  React.createElement(Recharts.Cell, { fill: '#334155' })
+                ),
+                React.createElement(Recharts.Tooltip)
+              )
+            ) : React.createElement('p', null, 'Loading...'),
+            React.createElement('div', { className: 'chart-annotation' }, '82%')
+          )
+        ),
+        React.createElement('div', { className: 'stats-grid' },
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('h3', null, 'Focus Score'),
+            Recharts.ResponsiveContainer ? React.createElement(Recharts.ResponsiveContainer, { width: '100%', height: 220 },
+              React.createElement(Recharts.RadialBarChart, { cx: '50%', cy: '50%', innerRadius: '70%', outerRadius: '100%', barSize: 18, data: focusData, startAngle: 180, endAngle: 0 },
+                React.createElement(Recharts.RadialBar, { minAngle: 15, background: true, clockWise: true, dataKey: 'value' })
+              )
+            ) : React.createElement('p', null, 'Loading...'),
+            React.createElement('div', { className: 'chart-annotation' }, '78%')
+          ),
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('div', { className: 'emoji-display' }, '🔥'),
+            React.createElement('h3', null, '6 Day Streak'),
+            React.createElement('p', null, 'You are staying consistent with deep work and learning.')
+          ),
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('div', { className: 'emoji-display' }, '🚀'),
+            React.createElement('h3', null, 'Growth Meter'),
+            React.createElement('p', null, 'Product Management + AI Automation progress improving weekly.')
+          )
+        )
+      ),
+      React.createElement('section', null,
+        React.createElement('div', { className: 'bottom-grid' },
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('h3', null, 'Sleep Tracker'),
+            React.createElement('div', { className: 'emoji-display' }, '😴')
+          ),
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('h3', null, 'Gym Consistency'),
+            React.createElement('div', { className: 'emoji-display' }, '💪')
+          ),
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('h3', null, 'Deep Work'),
+            React.createElement('div', { className: 'emoji-display' }, '🧠')
+          ),
+          React.createElement('div', { className: 'small-card center-content' },
+            React.createElement('h3', null, 'Weekly Wins'),
+            React.createElement('div', { className: 'emoji-display' }, '🏆')
+          )
+        )
+      ),
+      React.createElement('div', { className: 'footer-note' }, 'Built for Aditya • Stay Consistent • Keep Building 🚀')
+    );
+  }
 
-      <section className="card-grid">
-        {Object.entries(weeklyPlan).map(([day, tasks]) => (
-          <article key={day} className="card">
-            <div className="card-header">
-              <h2 className="card-title">{day}</h2>
-              <span className="status-pill" aria-label="active day"></span>
-            </div>
-
-            <div className="tasks-list">
-              {tasks.map((task, index) => (
-                <label key={index} className="task-item">
-                  <input type="checkbox" className="task-checkbox" />
-                  <p className="task-label">{task}</p>
-                </label>
-              ))}
-            </div>
-
-            <textarea
-              className="notes-textarea"
-              placeholder="Write notes for the day..."
-              aria-label={`Notes for ${day}`}
-            ></textarea>
-          </article>
-        ))}
-      </section>
-
-      <section>
-        <h2 className="section-title">Interactive Weekly Report</h2>
-
-        <div className="chart-grid">
-          <div className="chart-card">
-            <h3>Weekly Productivity Graph</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={productivityData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="name" stroke="#cbd5e1" />
-                <YAxis stroke="#cbd5e1" />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="tasks"
-                  stroke="#22c55e"
-                  strokeWidth={4}
-                  dot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="chart-card">
-            <h3>Weekly Completion Rate</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={consistencyData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  <Cell fill="#22c55e" />
-                  <Cell fill="#334155" />
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="chart-annotation">82%</div>
-          </div>
-        </div>
-
-        <div className="stats-grid">
-          <div className="small-card center-content">
-            <h3>Focus Score</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadialBarChart
-                cx="50%"
-                cy="50%"
-                innerRadius="70%"
-                outerRadius="100%"
-                barSize={18}
-                data={focusData}
-                startAngle={180}
-                endAngle={0}
-              >
-                <RadialBar minAngle={15} background clockWise dataKey="value" />
-              </RadialBarChart>
-            </ResponsiveContainer>
-            <div className="chart-annotation">78%</div>
-          </div>
-
-          <div className="small-card center-content">
-            <div className="small-card emoji">🔥</div>
-            <h3>6 Day Streak</h3>
-            <p>You are staying consistent with deep work and learning.</p>
-          </div>
-
-          <div className="small-card center-content">
-            <div className="small-card emoji">🚀</div>
-            <h3>Growth Meter</h3>
-            <p>Product Management + AI Automation progress improving weekly.</p>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="bottom-grid">
-          <div className="small-card center-content">
-            <h3>Sleep Tracker</h3>
-            <div className="emoji-display">😴</div>
-          </div>
-          <div className="small-card center-content">
-            <h3>Gym Consistency</h3>
-            <div className="emoji-display">💪</div>
-          </div>
-          <div className="small-card center-content">
-            <h3>Deep Work</h3>
-            <div className="emoji-display">🧠</div>
-          </div>
-          <div className="small-card center-content">
-            <h3>Weekly Wins</h3>
-            <div className="emoji-display">🏆</div>
-          </div>
-        </div>
-      </section>
-
-      <div className="footer-note">
-        Built for Aditya • Stay Consistent • Keep Building 🚀
-      </div>
-    </div>
-  );
+  // Render the app
+  try {
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(RoutineTracker));
+    console.log('App rendered successfully');
+  } catch (error) {
+    console.error('Error rendering app:', error);
+  }
 }
 
-// Render the app when DOM is ready
+// Initialize app when all scripts are loaded
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<RoutineTracker />);
-  });
+  document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(<RoutineTracker />);
+  initializeApp();
 }
