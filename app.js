@@ -1,17 +1,20 @@
-const {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  RadialBarChart,
-  RadialBar,
-} = Recharts;
+// Global React and Recharts are loaded via script tags
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+const { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid, 
+  RadialBarChart, 
+  RadialBar 
+} = window.Recharts;
 
 function RoutineTracker() {
   const weeklyPlan = {
@@ -231,5 +234,13 @@ function RoutineTracker() {
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<RoutineTracker />);
+// Render the app when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<RoutineTracker />);
+  });
+} else {
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<RoutineTracker />);
+}

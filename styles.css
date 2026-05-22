@@ -69,7 +69,8 @@ textarea {
 }
 
 .bottom-grid {
-  grid-template-columns: repeat( auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: 48px 0;
 }
 
 @media (min-width: 1024px) {
@@ -224,8 +225,14 @@ textarea {
   font-size: 3rem;
 }
 
+section {
+  margin-bottom: 48px;
+}
+
 .footer-note {
   margin-top: 36px;
+  padding-top: 36px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
   text-align: center;
   color: #94a3b8;
   font-size: 0.9rem;
