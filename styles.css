@@ -4,6 +4,13 @@
   background: #080808;
   color: #f8fafc;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --primary-color: #22c55e;
+  --primary-dark: #1ea853;
+  --bg-dark: #020202;
+  --bg-lighter: rgba(30, 41, 59, 0.88);
+  --border-color: rgba(148, 163, 184, 0.12);
+  --text-secondary: #94a3b8;
+  --transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -79,6 +86,28 @@ textarea {
   }
 }
 
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 24px 16px 32px;
+  }
+
+  .site-title {
+    font-size: clamp(2rem, 3vw, 3rem);
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .bottom-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .card,
 .chart-card,
 .small-card {
@@ -89,14 +118,21 @@ textarea {
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
 }
 
+
+
+.card {
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.chart-card,
+.small-card {
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
 .card:hover,
 .chart-card:hover,
 .small-card:hover {
-  transform: translateY(-2px);
-}
-
-.card {
-  transition: transform 0.24s ease;
+  box-shadow: 0 32px 96px rgba(15, 23, 42, 0.45);
 }
 
 .card-header {
@@ -119,6 +155,13 @@ textarea {
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16);
 }
 
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .task-item {
   display: flex;
   gap: 16px;
@@ -127,12 +170,13 @@ textarea {
   border-radius: 22px;
   background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.1);
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
 }
 
 .task-item:hover {
   background: rgba(71, 85, 105, 0.9);
+  border-color: rgba(34, 197, 94, 0.3);
 }
 
 .task-checkbox {
@@ -140,6 +184,12 @@ textarea {
   width: 20px;
   height: 20px;
   accent-color: #22c55e;
+  cursor: pointer;
+}
+
+.task-checkbox:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
 }
 
 .task-label {
@@ -163,6 +213,7 @@ textarea {
 .notes-textarea:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
 }
 
 .section-title {
@@ -221,12 +272,17 @@ textarea {
   font-size: 1.1rem;
 }
 
-.small-card.emoji {
+.emoji-display {
   font-size: 3rem;
+  line-height: 1;
 }
 
 section {
   margin-bottom: 48px;
+}
+
+section:last-of-type {
+  margin-bottom: 24px;
 }
 
 .footer-note {
@@ -236,4 +292,33 @@ section {
   text-align: center;
   color: #94a3b8;
   font-size: 0.9rem;
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card,
+.chart-card,
+.small-card {
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

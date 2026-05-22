@@ -110,7 +110,7 @@ function RoutineTracker() {
               <span className="status-pill" aria-label="active day"></span>
             </div>
 
-            <div>
+            <div className="tasks-list">
               {tasks.map((task, index) => (
                 <label key={index} className="task-item">
                   <input type="checkbox" className="task-checkbox" />
@@ -208,22 +208,24 @@ function RoutineTracker() {
         </div>
       </section>
 
-      <section className="bottom-grid">
-        <div className="small-card center-content">
-          <h3>Sleep Tracker</h3>
-          <div className="small-card emoji">😴</div>
-        </div>
-        <div className="small-card center-content">
-          <h3>Gym Consistency</h3>
-          <div className="small-card emoji">💪</div>
-        </div>
-        <div className="small-card center-content">
-          <h3>Deep Work</h3>
-          <div className="small-card emoji">🧠</div>
-        </div>
-        <div className="small-card center-content">
-          <h3>Weekly Wins</h3>
-          <div className="small-card emoji">🏆</div>
+      <section>
+        <div className="bottom-grid">
+          <div className="small-card center-content">
+            <h3>Sleep Tracker</h3>
+            <div className="emoji-display">😴</div>
+          </div>
+          <div className="small-card center-content">
+            <h3>Gym Consistency</h3>
+            <div className="emoji-display">💪</div>
+          </div>
+          <div className="small-card center-content">
+            <h3>Deep Work</h3>
+            <div className="emoji-display">🧠</div>
+          </div>
+          <div className="small-card center-content">
+            <h3>Weekly Wins</h3>
+            <div className="emoji-display">🏆</div>
+          </div>
         </div>
       </section>
 
