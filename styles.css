@@ -73,6 +73,7 @@ textarea {
 
 .chart-grid {
   grid-template-columns: 1fr;
+  margin-bottom: 24px;
 }
 
 .bottom-grid {
@@ -217,35 +218,47 @@ textarea {
 }
 
 .section-title {
-  margin: 0 0 28px;
+  margin: 0 0 32px;
   font-size: clamp(2rem, 3vw, 3rem);
   text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
 .chart-card {
   display: flex;
   flex-direction: column;
+  position: relative;
+  min-height: 420px;
 }
 
 .chart-card h3 {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   font-size: 1.5rem;
   text-align: center;
 }
 
 .chart-annotation {
-  margin-top: -138px;
-  margin-bottom: 18px;
-  font-size: 3rem;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #22c55e;
   text-align: center;
+  background: rgba(30, 41, 59, 0.95);
+  padding: 8px 16px;
+  border-radius: 12px;
+  z-index: 10;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
+  margin-top: 48px;
   margin-bottom: 24px;
 }
 
@@ -264,12 +277,22 @@ textarea {
 .center-content p {
   margin: 0;
   color: #94a3b8;
-  line-height: 1.7;
+  line-height: 1.6;
+  font-size: 0.9rem;
 }
 
 .small-card h3 {
-  margin: 0 0 18px;
+  margin: 0 0 12px;
   font-size: 1.1rem;
+  order: 2;
+}
+
+.small-card p {
+  order: 3;
+}
+
+.emoji-display {
+  order: 1;
 }
 
 .emoji-display {
