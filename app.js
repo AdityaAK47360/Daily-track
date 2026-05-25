@@ -73,7 +73,8 @@ function initializeApp() {
   function RoutineTracker() {
     const [weeklyPlan, setWeeklyPlan] = useState(loadSavedPlan);
     const [notes, setNotes] = useState(loadSavedNotes);
-    const [draftTasks, setDraftTasks] = useState({});
+    const [globalTaskText, setGlobalTaskText] = useState('');
+    const [selectedDay, setSelectedDay] = useState('Monday');
 
     useEffect(() => {
       try {
@@ -105,7 +106,11 @@ function initializeApp() {
         ...prev,
         [day]: [...(prev[day] || []), { id: createTaskId(), text: trimmed, completed: false }]
       }));
-      setDraftTasks(prev => ({ ...prev, [day]: '' }));
+    };
+
+    const handleGlobalAdd = () => {
+      addTask(selectedDay, globalTaskText);
+      setGlobalTaskText('');
     };
 
     const removeTask = (day, taskId) => {
@@ -136,6 +141,7 @@ function initializeApp() {
     };
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const selectableDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const productivityData = days.map(day => {
       const stats = calculateDayStats(day);
       return { name: day.slice(0, 3), tasks: stats.completed, total: stats.total };
@@ -158,38 +164,48 @@ function initializeApp() {
         React.createElement('p', { className: 'site-subtitle' }, 'Product Management • AI Agents • Saudafy • Gym • Deep Work')
       ),
 
+      React.createElement('section', { className: 'global-add-section' },
+        React.createElement('div', { className: 'global-add-form' },
+          React.createElement('input', {
+            type: 'text',
+            className: 'global-add-input',
+            placeholder: 'Write a task to add globally',
+            value: globalTaskText,
+            onChange: (event) => setGlobalTaskText(event.target.value),
+            onKeyDown: (event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                handleGlobalAdd();
+              }
+            }
+          }),
+          React.createElement('select', {
+            className: 'global-add-select',
+            value: selectedDay,
+            onChange: (event) => setSelectedDay(event.target.value)
+          },
+            selectableDays.map((day) => React.createElement('option', { key: day, value: day }, day))
+          ),
+          React.createElement('button', {
+            type: 'button',
+            className: 'action-btn global-add-button',
+            onClick: handleGlobalAdd
+          }, 'Add')
+        )
+      ),
+
       React.createElement('section', { className: 'card-grid' },
         Object.entries(weeklyPlan).map(([day, tasks]) => {
           const stats = calculateDayStats(day);
-          const taskDraft = draftTasks[day] || '';
 
           return React.createElement('article', { key: day, className: 'card' },
             React.createElement('div', { className: 'card-header' },
               React.createElement('h2', { className: 'card-title' }, day),
               React.createElement('span', { className: 'status-badge' }, `${stats.completed}/${stats.total}`)
             ),
-            React.createElement('div', { className: 'task-editor-row' },
-              React.createElement('input', {
-                type: 'text',
-                className: 'task-add-input',
-                placeholder: 'Add a task for ' + day,
-                value: taskDraft,
-                onChange: (event) => setDraftTasks(prev => ({ ...prev, [day]: event.target.value })),
-                onKeyDown: (event) => {
-                  if (event.key === 'Enter') {
-                    addTask(day, event.target.value);
-                  }
-                }
-              }),
-              React.createElement('button', {
-                type: 'button',
-                className: 'action-btn',
-                onClick: () => addTask(day, taskDraft)
-              }, 'Add')
-            ),
             React.createElement('div', { className: 'tasks-list' },
               tasks.length === 0
-                ? React.createElement('p', { className: 'empty-state' }, 'No tasks yet. Add one above to customize your day.')
+                ? React.createElement('p', { className: 'empty-state' }, 'No tasks yet. Add one from the global form to customize your day.')
                 : tasks.map((task) =>
                     React.createElement('div', { key: task.id, className: 'task-item' },
                       React.createElement('div', { className: 'task-row' },

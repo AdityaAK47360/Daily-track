@@ -234,14 +234,23 @@ textarea {
   opacity: 0.8;
 }
 
-.task-editor-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+.global-add-section {
+  margin-bottom: 24px;
 }
 
-.task-add-input {
-  flex: 1;
+.global-add-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.global-add-input,
+.global-add-select {
   border: 1px solid rgba(148, 163, 184, 0.14);
   border-radius: 16px;
   background: rgba(15, 23, 42, 0.92);
@@ -249,7 +258,16 @@ textarea {
   padding: 12px 14px;
 }
 
-.task-add-input:focus {
+.global-add-input {
+  flex: 1 1 320px;
+}
+
+.global-add-select {
+  min-width: 180px;
+}
+
+.global-add-input:focus,
+.global-add-select:focus {
   outline: none;
   border-color: rgba(34, 197, 94, 0.45);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
@@ -258,8 +276,9 @@ textarea {
 .action-btn,
 .remove-btn {
   border: 0;
-  border-radius: 16px;
-  padding: 12px 16px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
@@ -279,6 +298,8 @@ textarea {
   background: rgba(239, 68, 68, 0.15);
   color: #fecaca;
   align-self: flex-end;
+  padding: 4px 8px;
+  font-size: 0.8rem;
 }
 
 .empty-state {
