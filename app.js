@@ -8,64 +8,148 @@ function initializeApp() {
 
   const React = window.React;
   const ReactDOM = window.ReactDOM;
-  const { useState } = React;
+  const { useEffect, useState } = React;
   const Recharts = window.Recharts || {};
 
+  const defaultPlan = {
+    Monday: ['Wake up at 8:00 AM', '8:30 - 11:00 Product Management Videos', '12:00 - 1:00 MTL101', '3:00 - 6:00 AI Agents & Automation Videos', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
+    Tuesday: ['8:00 - 10:00 MTL101', '11:00 - 12:00 Cold Mailing', '3:00 - 6:00 AI Agents & Automation', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
+    Wednesday: ['8:00 - 10:00 MTL101', '12:00 - 1:00 Product Management', '3:00 - 6:00 AI Agentic Automation', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
+    Thursday: ['9:00 - 12:00 Product Management Videos', '2:30 - 6:00 AI Agents Automation Videos', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
+    Friday: ['9:00 - 12:00 Product Management Videos', '2:30 - 6:00 AI Agents Automation Videos', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
+    Saturday: ['9:00 - 12:00 Product Management Videos', '2:30 - 6:00 AI Agents Automation Videos', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
+    Sunday: ['OFF DAY ☕']
+  };
+
+  const createTaskId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  };
+
+  const normalizePlan = (plan) => {
+    const source = plan && typeof plan === 'object' ? plan : defaultPlan;
+    return Object.fromEntries(Object.entries(source).map(([day, tasks]) => [
+      day,
+      Array.isArray(tasks)
+        ? tasks.map(task => {
+            if (typeof task === 'string') {
+              return { id: createTaskId(), text: task, completed: false };
+            }
+            return {
+              id: task.id || createTaskId(),
+              text: task.text || '',
+              completed: !!task.completed
+            };
+          })
+        : []
+    ]));
+  };
+
+  const loadSavedPlan = () => {
+    try {
+      const saved = localStorage.getItem('daily-track-plan');
+      if (!saved) {
+        return normalizePlan(defaultPlan);
+      }
+      return normalizePlan(JSON.parse(saved));
+    } catch (error) {
+      console.warn('Unable to load saved plan:', error);
+      return normalizePlan(defaultPlan);
+    }
+  };
+
+  const loadSavedNotes = () => {
+    try {
+      const saved = localStorage.getItem('daily-track-notes');
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.warn('Unable to load saved notes:', error);
+      return {};
+    }
+  };
+
   function RoutineTracker() {
-    const weeklyPlan = {
-      Monday: ['Wake up at 8:00 AM', '8:30 - 11:00 Product Management Videos', '12:00 - 1:00 MTL101', '3:00 - 6:00 AI Agents & Automation Videos', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
-      Tuesday: ['8:00 - 10:00 MTL101', '11:00 - 12:00 Cold Mailing', '3:00 - 6:00 AI Agents & Automation', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
-      Wednesday: ['8:00 - 10:00 MTL101', '12:00 - 1:00 Product Management', '3:00 - 6:00 AI Agentic Automation', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
-      Thursday: ['9:00 - 12:00 Product Management Videos', '2:30 - 6:00 AI Agents Automation Videos', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
-      Friday: ['9:00 - 12:00 Product Management Videos', '2:30 - 6:00 AI Agents Automation Videos', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
-      Saturday: ['9:00 - 12:00 Product Management Videos', '2:30 - 6:00 AI Agents Automation Videos', '6:00 - 7:30 Gym', 'Dinner Break', 'Saudafy + Moj Masti Work', 'Sleep before 2:00 AM'],
-      Sunday: ['OFF DAY ☕']
-    };
+    const [weeklyPlan, setWeeklyPlan] = useState(loadSavedPlan);
+    const [notes, setNotes] = useState(loadSavedNotes);
+    const [draftTasks, setDraftTasks] = useState({});
 
-    // Initialize state
-    const [completedTasks, setCompletedTasks] = useState({});
-    const [notes, setNotes] = useState({});
+    useEffect(() => {
+      try {
+        localStorage.setItem('daily-track-plan', JSON.stringify(weeklyPlan));
+      } catch (error) {
+        console.warn('Unable to save plan:', error);
+      }
+    }, [weeklyPlan]);
 
-    // Toggle task completion
-    const toggleTask = (day, index) => {
-      const key = `${day}-${index}`;
-      setCompletedTasks(prev => ({ ...prev, [key]: !prev[key] }));
-    };
+    useEffect(() => {
+      try {
+        localStorage.setItem('daily-track-notes', JSON.stringify(notes));
+      } catch (error) {
+        console.warn('Unable to save notes:', error);
+      }
+    }, [notes]);
 
-    // Update notes
     const updateNotes = (day, value) => {
       setNotes(prev => ({ ...prev, [day]: value }));
     };
 
-    // Calculate completed tasks for each day
-    const calculateDayStats = (day) => {
-      const totalTasks = weeklyPlan[day].length;
-      let completedCount = 0;
-      for (let i = 0; i < totalTasks; i++) {
-        if (completedTasks[`${day}-${i}`]) completedCount++;
+    const addTask = (day, text) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return;
       }
-      return { completed: completedCount, total: totalTasks };
+
+      setWeeklyPlan(prev => ({
+        ...prev,
+        [day]: [...(prev[day] || []), { id: createTaskId(), text: trimmed, completed: false }]
+      }));
+      setDraftTasks(prev => ({ ...prev, [day]: '' }));
     };
 
-    // Generate productivity data based on completed tasks
+    const removeTask = (day, taskId) => {
+      setWeeklyPlan(prev => ({
+        ...prev,
+        [day]: (prev[day] || []).filter(task => task.id !== taskId)
+      }));
+    };
+
+    const updateTaskText = (day, taskId, text) => {
+      setWeeklyPlan(prev => ({
+        ...prev,
+        [day]: (prev[day] || []).map(task => task.id === taskId ? { ...task, text } : task)
+      }));
+    };
+
+    const toggleTask = (day, taskId) => {
+      setWeeklyPlan(prev => ({
+        ...prev,
+        [day]: (prev[day] || []).map(task => task.id === taskId ? { ...task, completed: !task.completed } : task)
+      }));
+    };
+
+    const calculateDayStats = (day) => {
+      const tasks = weeklyPlan[day] || [];
+      const completedCount = tasks.filter(task => task.completed).length;
+      return { completed: completedCount, total: tasks.length };
+    };
+
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const productivityData = days.map(day => {
       const stats = calculateDayStats(day);
       return { name: day.slice(0, 3), tasks: stats.completed, total: stats.total };
     });
 
-    // Calculate overall completion percentage
-    const totalTasks = Object.keys(weeklyPlan).reduce((sum, day) => sum + weeklyPlan[day].length, 0);
-    const totalCompleted = Object.values(completedTasks).filter(v => v).length;
-    const completionPercentage = Math.round((totalCompleted / totalTasks) * 100);
+    const totalTasks = Object.values(weeklyPlan).reduce((sum, tasks) => sum + tasks.length, 0);
+    const totalCompleted = Object.values(weeklyPlan).reduce((sum, tasks) => sum + tasks.filter(task => task.completed).length, 0);
+    const completionPercentage = totalTasks === 0 ? 0 : Math.round((totalCompleted / totalTasks) * 100);
 
-    // Consistency data
     const consistencyData = [
       { name: 'Completed', value: completionPercentage },
       { name: 'Remaining', value: 100 - completionPercentage }
     ];
 
-    // Focus score
     const focusData = [{ name: 'Focus', value: Math.min(completionPercentage * 1.2, 100), fill: '#22c55e' }];
 
     return React.createElement('div', { className: 'app-shell' },
@@ -77,23 +161,58 @@ function initializeApp() {
       React.createElement('section', { className: 'card-grid' },
         Object.entries(weeklyPlan).map(([day, tasks]) => {
           const stats = calculateDayStats(day);
+          const taskDraft = draftTasks[day] || '';
+
           return React.createElement('article', { key: day, className: 'card' },
             React.createElement('div', { className: 'card-header' },
               React.createElement('h2', { className: 'card-title' }, day),
               React.createElement('span', { className: 'status-badge' }, `${stats.completed}/${stats.total}`)
             ),
+            React.createElement('div', { className: 'task-editor-row' },
+              React.createElement('input', {
+                type: 'text',
+                className: 'task-add-input',
+                placeholder: 'Add a task for ' + day,
+                value: taskDraft,
+                onChange: (event) => setDraftTasks(prev => ({ ...prev, [day]: event.target.value })),
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter') {
+                    addTask(day, event.target.value);
+                  }
+                }
+              }),
+              React.createElement('button', {
+                type: 'button',
+                className: 'action-btn',
+                onClick: () => addTask(day, taskDraft)
+              }, 'Add')
+            ),
             React.createElement('div', { className: 'tasks-list' },
-              tasks.map((task, index) =>
-                React.createElement('label', { key: index, className: 'task-item' },
-                  React.createElement('input', {
-                    type: 'checkbox',
-                    className: 'task-checkbox',
-                    checked: !!completedTasks[`${day}-${index}`],
-                    onChange: () => toggleTask(day, index)
-                  }),
-                  React.createElement('p', { className: `task-label ${completedTasks[`${day}-${index}`] ? 'completed' : ''}` }, task)
-                )
-              )
+              tasks.length === 0
+                ? React.createElement('p', { className: 'empty-state' }, 'No tasks yet. Add one above to customize your day.')
+                : tasks.map((task) =>
+                    React.createElement('div', { key: task.id, className: 'task-item' },
+                      React.createElement('div', { className: 'task-row' },
+                        React.createElement('input', {
+                          type: 'checkbox',
+                          className: 'task-checkbox',
+                          checked: !!task.completed,
+                          onChange: () => toggleTask(day, task.id)
+                        }),
+                        React.createElement('input', {
+                          type: 'text',
+                          className: `editable-task-input ${task.completed ? 'completed' : ''}`,
+                          value: task.text,
+                          onChange: (event) => updateTaskText(day, task.id, event.target.value)
+                        })
+                      ),
+                      React.createElement('button', {
+                        type: 'button',
+                        className: 'remove-btn',
+                        onClick: () => removeTask(day, task.id)
+                      }, 'Remove')
+                    )
+                  )
             ),
             React.createElement('textarea', {
               className: 'notes-textarea',
