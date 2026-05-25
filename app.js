@@ -25,18 +25,21 @@ function initializeApp() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       return crypto.randomUUID();
     }
+
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   };
 
   const normalizePlan = (plan) => {
     const source = plan && typeof plan === 'object' ? plan : defaultPlan;
+
     return Object.fromEntries(Object.entries(source).map(([day, tasks]) => [
       day,
       Array.isArray(tasks)
-        ? tasks.map(task => {
+        ? tasks.map((task) => {
             if (typeof task === 'string') {
               return { id: createTaskId(), text: task, completed: false };
             }
+
             return {
               id: task.id || createTaskId(),
               text: task.text || '',
@@ -47,53 +50,166 @@ function initializeApp() {
     ]));
   };
 
-  const loadSavedPlan = () => {
-    try {
-      const saved = localStorage.getItem('daily-track-plan');
-      if (!saved) {
-        return normalizePlan(defaultPlan);
-      }
-      return normalizePlan(JSON.parse(saved));
-    } catch (error) {
-      console.warn('Unable to load saved plan:', error);
-      return normalizePlan(defaultPlan);
-    }
-  };
+  const TOKEN_KEY = 'daily-track-token';
 
-  const loadSavedNotes = () => {
-    try {
-      const saved = localStorage.getItem('daily-track-notes');
-      return saved ? JSON.parse(saved) : {};
-    } catch (error) {
-      console.warn('Unable to load saved notes:', error);
-      return {};
+  const apiRequest = async (path, options = {}) => {
+    const response = await fetch(path, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      },
+      ...options
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+
+    if (!response.ok) {
+      throw new Error(typeof payload === 'string' ? payload : payload.error || 'Request failed');
     }
+
+    return payload;
   };
 
   function RoutineTracker() {
-    const [weeklyPlan, setWeeklyPlan] = useState(loadSavedPlan);
-    const [notes, setNotes] = useState(loadSavedNotes);
+    const [weeklyPlan, setWeeklyPlan] = useState(normalizePlan(defaultPlan));
+    const [notes, setNotes] = useState({});
     const [globalTaskText, setGlobalTaskText] = useState('');
     const [selectedDay, setSelectedDay] = useState('Monday');
+    const [authMode, setAuthMode] = useState('login');
+    const [authUsername, setAuthUsername] = useState('');
+    const [authPassword, setAuthPassword] = useState('');
+    const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+    const [authMessage, setAuthMessage] = useState('Sign in or create an account to save your progress.');
+    const [activeUser, setActiveUser] = useState('');
+    const [sessionToken, setSessionToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
+    const [isLoadingSession, setIsLoadingSession] = useState(false);
 
     useEffect(() => {
-      try {
-        localStorage.setItem('daily-track-plan', JSON.stringify(weeklyPlan));
-      } catch (error) {
-        console.warn('Unable to save plan:', error);
+      if (!sessionToken) {
+        return;
       }
-    }, [weeklyPlan]);
+
+      let cancelled = false;
+      setIsLoadingSession(true);
+
+      apiRequest('/api/me', {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`
+        }
+      })
+        .then((response) => {
+          if (cancelled) {
+            return;
+          }
+
+          setActiveUser(response.user);
+          setWeeklyPlan(normalizePlan(response.plan));
+          setNotes(response.notes || {});
+          setAuthMessage(`Signed in as ${response.user}.`);
+        })
+        .catch(() => {
+          if (cancelled) {
+            return;
+          }
+
+          localStorage.removeItem(TOKEN_KEY);
+          setSessionToken('');
+          setActiveUser('');
+          setWeeklyPlan(normalizePlan(defaultPlan));
+          setNotes({});
+          setAuthMessage('Session expired. Please sign in again.');
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingSession(false);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [sessionToken]);
 
     useEffect(() => {
-      try {
-        localStorage.setItem('daily-track-notes', JSON.stringify(notes));
-      } catch (error) {
-        console.warn('Unable to save notes:', error);
+      if (!sessionToken || !activeUser) {
+        return;
       }
-    }, [notes]);
+
+      const saveTimer = setTimeout(() => {
+        apiRequest('/api/save', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${sessionToken}`
+          },
+          body: JSON.stringify({ plan: weeklyPlan, notes })
+        }).catch(() => {
+          setAuthMessage('Unable to sync changes right now. Please try again.');
+        });
+      }, 250);
+
+      return () => clearTimeout(saveTimer);
+    }, [weeklyPlan, notes, sessionToken, activeUser]);
+
+    const handleAuth = async (mode) => {
+      const username = authUsername.trim();
+      const password = authPassword.trim();
+
+      if (!username || !password) {
+        setAuthMessage('Enter both a username and password.');
+        return;
+      }
+
+      if (mode === 'register' && password !== authConfirmPassword) {
+        setAuthMessage('Passwords do not match.');
+        return;
+      }
+
+      try {
+        const response = await apiRequest(`/api/${mode}`, {
+          method: 'POST',
+          body: JSON.stringify({ username, password })
+        });
+
+        localStorage.setItem(TOKEN_KEY, response.token);
+        setSessionToken(response.token);
+        setActiveUser(response.user);
+        setWeeklyPlan(normalizePlan(response.plan));
+        setNotes(response.notes || {});
+        setAuthMessage(mode === 'register' ? `Account created for ${response.user}.` : `Signed in as ${response.user}.`);
+        setAuthPassword('');
+        setAuthConfirmPassword('');
+      } catch (error) {
+        setAuthMessage(error.message);
+      }
+    };
+
+    const handleLogout = async () => {
+      if (sessionToken) {
+        try {
+          await apiRequest('/api/logout', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${sessionToken}`
+            }
+          });
+        } catch (error) {
+          console.warn('Unable to clear session on server:', error);
+        }
+      }
+
+      localStorage.removeItem(TOKEN_KEY);
+      setSessionToken('');
+      setActiveUser('');
+      setWeeklyPlan(normalizePlan(defaultPlan));
+      setNotes({});
+      setAuthMessage('Signed out. Sign in again to save your progress.');
+      setAuthPassword('');
+      setAuthConfirmPassword('');
+    };
 
     const updateNotes = (day, value) => {
-      setNotes(prev => ({ ...prev, [day]: value }));
+      setNotes((prev) => ({ ...prev, [day]: value }));
     };
 
     const addTask = (day, text) => {
@@ -102,53 +218,57 @@ function initializeApp() {
         return;
       }
 
-      setWeeklyPlan(prev => ({
+      setWeeklyPlan((prev) => ({
         ...prev,
         [day]: [...(prev[day] || []), { id: createTaskId(), text: trimmed, completed: false }]
       }));
     };
 
     const handleGlobalAdd = () => {
+      if (!globalTaskText.trim()) {
+        return;
+      }
+
       addTask(selectedDay, globalTaskText);
       setGlobalTaskText('');
     };
 
     const removeTask = (day, taskId) => {
-      setWeeklyPlan(prev => ({
+      setWeeklyPlan((prev) => ({
         ...prev,
-        [day]: (prev[day] || []).filter(task => task.id !== taskId)
+        [day]: (prev[day] || []).filter((task) => task.id !== taskId)
       }));
     };
 
     const updateTaskText = (day, taskId, text) => {
-      setWeeklyPlan(prev => ({
+      setWeeklyPlan((prev) => ({
         ...prev,
-        [day]: (prev[day] || []).map(task => task.id === taskId ? { ...task, text } : task)
+        [day]: (prev[day] || []).map((task) => (task.id === taskId ? { ...task, text } : task))
       }));
     };
 
     const toggleTask = (day, taskId) => {
-      setWeeklyPlan(prev => ({
+      setWeeklyPlan((prev) => ({
         ...prev,
-        [day]: (prev[day] || []).map(task => task.id === taskId ? { ...task, completed: !task.completed } : task)
+        [day]: (prev[day] || []).map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task))
       }));
     };
 
     const calculateDayStats = (day) => {
       const tasks = weeklyPlan[day] || [];
-      const completedCount = tasks.filter(task => task.completed).length;
+      const completedCount = tasks.filter((task) => task.completed).length;
       return { completed: completedCount, total: tasks.length };
     };
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const selectableDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const productivityData = days.map(day => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const productivityData = days.map((day) => {
       const stats = calculateDayStats(day);
       return { name: day.slice(0, 3), tasks: stats.completed, total: stats.total };
     });
 
     const totalTasks = Object.values(weeklyPlan).reduce((sum, tasks) => sum + tasks.length, 0);
-    const totalCompleted = Object.values(weeklyPlan).reduce((sum, tasks) => sum + tasks.filter(task => task.completed).length, 0);
+    const totalCompleted = Object.values(weeklyPlan).reduce((sum, tasks) => sum + tasks.filter((task) => task.completed).length, 0);
     const completionPercentage = totalTasks === 0 ? 0 : Math.round((totalCompleted / totalTasks) * 100);
 
     const consistencyData = [
@@ -162,6 +282,81 @@ function initializeApp() {
       React.createElement('header', { className: 'site-header' },
         React.createElement('h1', { className: 'site-title' }, 'Weekly Routine Tracker'),
         React.createElement('p', { className: 'site-subtitle' }, 'Product Management • AI Agents • Saudafy • Gym • Deep Work')
+      ),
+
+      React.createElement('section', { className: 'auth-panel' },
+        React.createElement('div', { className: 'auth-card' },
+          React.createElement('div', { className: 'auth-card-header' },
+            React.createElement('h2', { className: 'auth-card-title' }, activeUser ? `Signed in as ${activeUser}` : 'Create an account to save your progress'),
+            React.createElement('p', { className: 'auth-message' }, isLoadingSession ? 'Loading your saved data...' : authMessage)
+          ),
+          activeUser
+            ? React.createElement('div', { className: 'auth-actions' },
+                React.createElement('button', {
+                  type: 'button',
+                  className: 'action-btn',
+                  onClick: handleLogout
+                }, 'Log out')
+              )
+            : React.createElement('div', null,
+                React.createElement('div', { className: 'auth-form-grid' },
+                  React.createElement('input', {
+                    type: 'text',
+                    className: 'auth-input',
+                    placeholder: 'Username',
+                    value: authUsername,
+                    onChange: (event) => setAuthUsername(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAuth(authMode);
+                      }
+                    }
+                  }),
+                  React.createElement('input', {
+                    type: 'password',
+                    className: 'auth-input',
+                    placeholder: 'Password',
+                    value: authPassword,
+                    onChange: (event) => setAuthPassword(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAuth(authMode);
+                      }
+                    }
+                  }),
+                  authMode === 'register' && React.createElement('input', {
+                    type: 'password',
+                    className: 'auth-input',
+                    placeholder: 'Confirm password',
+                    value: authConfirmPassword,
+                    onChange: (event) => setAuthConfirmPassword(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAuth(authMode);
+                      }
+                    }
+                  })
+                ),
+                React.createElement('div', { className: 'auth-actions' },
+                  React.createElement('button', {
+                    type: 'button',
+                    className: 'action-btn',
+                    onClick: () => handleAuth(authMode)
+                  }, authMode === 'login' ? 'Log in' : 'Create account'),
+                  React.createElement('button', {
+                    type: 'button',
+                    className: 'secondary-btn',
+                    onClick: () => {
+                      setAuthMode(authMode === 'login' ? 'register' : 'login');
+                      setAuthMessage(authMode === 'login' ? 'Create a username and password to save your data.' : 'Use your saved username and password to continue.');
+                    }
+                  }, authMode === 'login' ? 'Create account' : 'Back to login')
+                )
+              )
+        )
       ),
 
       React.createElement('section', { className: 'global-add-section' },
@@ -321,17 +516,15 @@ function initializeApp() {
     );
   }
 
-  // Render the app
   try {
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(React.createElement(RoutineTracker));
-    console.log('App rendered successfully with state management');
+    console.log('App rendered successfully with backend sync');
   } catch (error) {
     console.error('Error rendering app:', error);
   }
 }
 
-// Initialize app when all scripts are loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
